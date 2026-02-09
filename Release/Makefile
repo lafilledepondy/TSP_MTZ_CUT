@@ -129,6 +129,30 @@ TSP_Gurobi/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP_Gurobi.dir/build.make CMakeFiles/TSP_Gurobi.dir/build
 .PHONY : TSP_Gurobi/fast
 
+src/ATSP_CUT.o: src/ATSP_CUT.cpp.o
+.PHONY : src/ATSP_CUT.o
+
+# target to build an object file
+src/ATSP_CUT.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP_Gurobi.dir/build.make CMakeFiles/TSP_Gurobi.dir/src/ATSP_CUT.cpp.o
+.PHONY : src/ATSP_CUT.cpp.o
+
+src/ATSP_CUT.i: src/ATSP_CUT.cpp.i
+.PHONY : src/ATSP_CUT.i
+
+# target to preprocess a source file
+src/ATSP_CUT.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP_Gurobi.dir/build.make CMakeFiles/TSP_Gurobi.dir/src/ATSP_CUT.cpp.i
+.PHONY : src/ATSP_CUT.cpp.i
+
+src/ATSP_CUT.s: src/ATSP_CUT.cpp.s
+.PHONY : src/ATSP_CUT.s
+
+# target to generate assembly for a file
+src/ATSP_CUT.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP_Gurobi.dir/build.make CMakeFiles/TSP_Gurobi.dir/src/ATSP_CUT.cpp.s
+.PHONY : src/ATSP_CUT.cpp.s
+
 src/ATSP_MTZ.o: src/ATSP_MTZ.cpp.o
 .PHONY : src/ATSP_MTZ.o
 
@@ -210,6 +234,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... TSP_Gurobi"
+	@echo "... src/ATSP_CUT.o"
+	@echo "... src/ATSP_CUT.i"
+	@echo "... src/ATSP_CUT.s"
 	@echo "... src/ATSP_MTZ.o"
 	@echo "... src/ATSP_MTZ.i"
 	@echo "... src/ATSP_MTZ.s"

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "ATSP_MTZ.cpp"
+#include "ATSP_MTZ.hpp"
 
 using namespace std;
 
