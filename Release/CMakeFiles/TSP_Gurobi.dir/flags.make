@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/opt/gurobi1301/linux64/include -I/home/gaya/Documents/ROAD/AONE/ATSP_Gurobi/include
+CXX_INCLUDES = -I/opt/gurobi1301/linux64/include -I/home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT/include
 
 CXX_FLAGS = -std=gnu++14
 

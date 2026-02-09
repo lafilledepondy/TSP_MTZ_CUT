@@ -1,4 +1,4 @@
-# Install script for directory: /home/gaya/Documents/ROAD/AONE/ATSP_Gurobi
+# Install script for directory: /home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/gaya/Documents/ROAD/AONE/ATSP_Gurobi/Release/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT/Release/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
