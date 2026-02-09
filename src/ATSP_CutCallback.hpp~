@@ -1,0 +1,115 @@
+#include "hi_pr.hpp"
+
+using namespace std;
+
+class CutCallback: public GRBCallback {
+public :
+  vector<vector<GRBVar>> & _x;
+  vector<vector<double>> _valx;
+  ATSPDataC & _data;
+  CutCallback(vector<vector<GRBVar>> & x, ATSPDataC & data):_x(x), _data(data), _valx(data.size,vector<double>(data.size,0.0)){}
+
+protected:
+  void callback(){
+    try{
+      if (where == GRB_CB_MIPSOL){ // Lazy Cuts
+	
+	for (int i = 0; i < _data.size; ++i){
+	  for (int j = 0; j < _data.size; ++j){
+	    if ((i != j) && (getSolution(_x[i][j]) > 0.9)){
+	      _valx[i][j] = 1;
+	    } else {
+	      _valx[i][j] = 0;
+	    }
+	  }
+	}
+
+	vector<bool> visited(_data.size,false);
+	int ville = 0;
+	int cpt = 0;
+	do {
+	  visited[ville] = true;
+	  cpt++;
+	  for (int i=0; i<_data.size; ++i){
+	    if (_valx[ville][i] > 0.99){
+	      ville = i;
+	      break;
+	    }
+	  }
+	} while (ville != 0);
+
+	if (cpt < _data.size){
+	  GRBLinExpr lhs = 0;
+	  for (int i = 0; i < _data.size; ++i){
+	    for (int j = 0; j < _data.size; ++j){
+	      if ((i != j) && visited[i] && !visited[j]) {
+		lhs += _x[i][j];
+	      }
+	    }
+	  }
+	  addLazy(lhs >= 1);
+	}
+	
+      }
+      else {
+	if ((where == GRB_CB_MIPNODE) && (getIntInfo(GRB_CB_MIPNODE_STATUS) == GRB_OPTIMAL)){ // User Cuts
+	  double **valx = new double*[_data.size];
+	  for (int i = 0; i < _data.size; ++i){
+	    valx[i] = new double[_data.size];
+	  }
+	  // cout << "User Cut solution " << endl;
+	  for (int i = 0; i < _data.size; ++i){
+	    for (int j = 0; j < _data.size; ++j){
+	      if ((i != j) && (getNodeRel(_x[i][j]) > 1e-6)) {
+		_valx[i][j] = getNodeRel(_x[i][j]);
+		valx[i][j] = getNodeRel(_x[i][j]);
+		// cout << valx[i][j] << "-";
+	      } else {
+		valx[i][j] = 0.0;
+		// cout << valx[i][j] << "-";
+	      }
+	    }
+	    // cout << endl;
+	  }
+	  
+	  long* dist = new long[_data.size];
+
+	  for (int i = 1; i < _data.size; ++i){
+	    double vflow;
+	    for (int j = 0; j < _data.size; ++j){
+	      dist[j] = _data.size;
+	    }
+	    directed_min_cut(valx,_data.size,0,i,vflow,dist);
+	    if (vflow < 1.0 - 1e-3){ // violated cut
+	      
+	      GRBLinExpr lhs = 0;
+	      for (int p = 0; p < _data.size; ++p){
+		for (int q = 0; q < _data.size; ++q){
+		  if ((p != q) && (dist[p] >= _data.size) && (dist[q] < _data.size)) {
+		    lhs += _x[p][q];
+		  }
+		}
+	      }
+	      addCut(lhs >= 1);
+
+	    }
+	  }
+
+	  for (int i = 0; i < _data.size; ++i){
+	    delete [] valx[i];
+	  }
+	  delete [] valx;
+	  delete [] dist;
+	}
+      }
+    }
+    catch (GRBException e){
+      cout << "Error number : " << e.getErrorCode() << endl;
+      cout << e.getMessage() << endl;
+    }
+    catch (...){
+      cout << "Unknown error during callback !!!" << endl;
+    }
+    
+  }
+};

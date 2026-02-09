@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/TSP_Gurobi.dir/src/ATSP_MTZ.cpp.o CMakeFiles/TSP_Gurobi.dir/src/hi_pr.cpp.o CMakeFiles/TSP_Gurobi.dir/src/main.cpp.o -o TSP_Gurobi   -L/opt/gurobi1301/linux64/lib  -Wl,-rpath,/opt/gurobi1301/linux64/lib /opt/gurobi1301/linux64/lib/libgurobi_c++.a -lgurobi130
