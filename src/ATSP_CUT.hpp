@@ -1,22 +1,20 @@
-#include <string>
-#include <sstream>
+#pragma once
 #include <vector>
-#include <iostream>
 #include "gurobi_c++.h"
-
-using namespace std;
-
 #include "ATSP_Data.hpp"
 
-#pragma once
-
-class ATSP_CUT
+class ATSP_CUT : public GRBCallback
 {
 private:
     ATSPDataC data;
 
+    void findSubtour(const std::vector<std::vector<int>> &sol, std::vector<int> &S);
+
 public:
     ATSP_CUT(ATSPDataC data);
+    int solve();
+    void printSolution(int status);
 
-    void solve();
+protected:
+    void callback() override;
 };

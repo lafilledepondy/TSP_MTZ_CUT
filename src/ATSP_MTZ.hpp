@@ -19,5 +19,7 @@ private:
 public:
     ATSP_MTZ(ATSPDataC data);
 
-    void solve();
+    int solve();
+
+    void printSolution(int status);
 };
