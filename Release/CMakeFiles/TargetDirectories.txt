@@ -1,3 +1,0 @@
-/home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT/Release/CMakeFiles/TSP_Gurobi.dir
-/home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT/Release/CMakeFiles/edit_cache.dir
-/home/gaya/Documents/ROAD/AONE/TSP_MTZ_CUT/Release/CMakeFiles/rebuild_cache.dir
