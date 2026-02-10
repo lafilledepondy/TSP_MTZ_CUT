@@ -1,6 +1,6 @@
 #include <iostream>
 #include "ATSP_MTZ.hpp"
-// #include "ATSP_CUT.hpp"
+#include "ATSP_CUT.hpp"
 
 using namespace std;
 
@@ -22,8 +22,8 @@ int main(int argc, char **argv)
     ATSPDataC data(argv[1]);
     // data.printData();
 
-    // ATSP_CUT solver(data);
-    // solver.solve();
+    ATSP_CUT solver(data);
+    solver.solve();
 
     return 0;
   }
