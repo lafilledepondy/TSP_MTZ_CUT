@@ -15,6 +15,18 @@ private:
     std::unique_ptr<GRBModel> model;
     vector<vector<GRBVar>> x;
     int status;
+    int lazyCuts;
+    int userCuts;
+
+public:
+    enum class SolveMode
+    {
+        IntegerMIP,
+        FractionalLP
+    };
+
+private:
+    SolveMode mode;
 
 public:
     void setterX(vector<vector<GRBVar>> &x) { this->x = x; }
@@ -22,8 +34,12 @@ public:
     GRBModel *getterModel() { return this->model.get(); }
     vector<vector<GRBVar>> &getterX() { return this->x; }
     int getterStatus() { return this->status; }
+    int getLazyCuts() const { return lazyCuts; }
+    int getUserCuts() const { return userCuts; }
+    int getTotalCuts() const { return lazyCuts + userCuts; }
+    SolveMode getMode() const { return mode; }
 
-    ATSP_CUT(ATSPDataC data);
+    ATSP_CUT(ATSPDataC data, SolveMode mode = SolveMode::IntegerMIP);
     void solve();
     void printSolution();
 };
@@ -33,10 +49,12 @@ class ATSP_CUT_Callback : public GRBCallback
 private:
     int n;
     vector<vector<GRBVar>> &x;
+    int *lazyCuts;
+    int *userCuts;
 
 public:
-    ATSP_CUT_Callback(int n, vector<vector<GRBVar>> &x)
-        : n(n), x(x) {}
+    ATSP_CUT_Callback(int n, vector<vector<GRBVar>> &x, int *lazyCuts, int *userCuts)
+        : n(n), x(x), lazyCuts(lazyCuts), userCuts(userCuts) {}
 
 protected:
     void callback()
@@ -66,6 +84,8 @@ protected:
                                 cut += x[i][j];
 
                     addLazy(cut >= 1);
+                    if (lazyCuts)
+                        (*lazyCuts)++;
                     return; // une coupe suffit
                 }
             }
@@ -120,6 +140,8 @@ protected:
                                     cut += x[i][j];
 
                         addCut(cut >= 1);
+                        if (userCuts)
+                            (*userCuts)++;
                         delete[] dist;
                         break;
                     }

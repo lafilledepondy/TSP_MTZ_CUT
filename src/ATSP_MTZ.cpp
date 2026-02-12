@@ -96,7 +96,7 @@ void ATSP_MTZ::solve()
             }
         }
 
-        modelRef.set(GRB_DoubleParam_TimeLimit, 600.0); //< définition du temps limite (en secondes)
+        modelRef.set(GRB_DoubleParam_TimeLimit, 180.0); //< définition du temps limite (en secondes)
         modelRef.set(GRB_IntParam_Threads, 1);          //< définition du nombre de threads pouvant être utilisé
         modelRef.write("model.lp");                     //< écriture du modèle PLNE dans le fichier donné en paramètre (optionnel)
         modelRef.optimize();

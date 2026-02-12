@@ -1,13 +1,66 @@
 #include "ATSP_CUT.hpp"
+#include <chrono>
 
 using namespace std;
 
-ATSP_CUT::ATSP_CUT(ATSPDataC data) : data(data) {}
+ATSP_CUT::ATSP_CUT(ATSPDataC data, SolveMode mode)
+    : data(data), status(0), lazyCuts(0), userCuts(0), mode(mode) {}
+
+static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S)
+{
+    int n = static_cast<int>(sol.size());
+
+    double **cap = new double *[n];
+    for (int i = 0; i < n; ++i)
+    {
+        cap[i] = new double[n];
+        for (int j = 0; j < n; ++j)
+            cap[i][j] = (i == j) ? 0.0 : sol[i][j];
+    }
+
+    for (int sink = 1; sink < n; ++sink)
+    {
+        long *dist = new long[n];
+        double val = 0.0;
+        directed_min_cut(cap, n, 0, sink, val, dist);
+
+        if (val < 1.0 - 1e-6)
+        {
+            S.clear();
+            S.reserve(n);
+            for (int v = 0; v < n; ++v)
+                if (dist[v] <= n - 1)
+                    S.push_back(v);
+
+            delete[] dist;
+            for (int i = 0; i < n; ++i)
+                delete[] cap[i];
+            delete[] cap;
+
+            if (!S.empty() && static_cast<int>(S.size()) < n)
+                return true;
+
+            continue;
+        }
+
+        delete[] dist;
+    }
+
+    for (int i = 0; i < n; ++i)
+        delete[] cap[i];
+    delete[] cap;
+
+    S.clear();
+    return false;
+}
 
 void ATSP_CUT::solve()
 {
     try
     {
+        lazyCuts = 0;
+        userCuts = 0;
+
         env = std::make_unique<GRBEnv>(true);
         env->set("LogFile", "atsp_cut.log");
         env->start();
@@ -19,23 +72,25 @@ void ATSP_CUT::solve()
         x.assign(data.size, vector<GRBVar>(data.size));
         vector<vector<GRBVar>> &xRef = x;
         vector<GRBVar> u(data.size);
+        const char xType = (mode == SolveMode::FractionalLP) ? GRB_CONTINUOUS : GRB_BINARY;
+        const char uType = (mode == SolveMode::FractionalLP) ? GRB_CONTINUOUS : GRB_INTEGER;
 
         for (int i = 0; i < data.size; ++i)
         {
             // 1 <= u_i <= n-1 for i in N\{0}
             if (i != 0)
             {
-                u[i] = modelRef.addVar(1.0, data.size - 1, 0.0, GRB_INTEGER, "u(" + to_string(i) + ")");
+                u[i] = modelRef.addVar(1.0, data.size - 1, 0.0, uType, "u(" + to_string(i) + ")");
             }
             else
             {
-                u[i] = modelRef.addVar(0.0, 0.0, 0.0, GRB_INTEGER, "u(" + to_string(i) + ")");
+                u[i] = modelRef.addVar(0.0, 0.0, 0.0, uType, "u(" + to_string(i) + ")");
             }
             for (int j = 0; j < data.size; ++j)
             {
                 if (i != j)
                 {
-                    x[i][j] = modelRef.addVar(0.0, 1.0, data.distances[i][j], GRB_BINARY, "x(" + to_string(i) + "," + to_string(j) + ")");
+                    x[i][j] = modelRef.addVar(0.0, 1.0, data.distances[i][j], xType, "x(" + to_string(i) + "," + to_string(j) + ")");
                 }
             }
         }
@@ -70,18 +125,71 @@ void ATSP_CUT::solve()
             modelRef.addConstr(in == 1);
         }
 
-        modelRef.set(GRB_IntParam_LazyConstraints, 1);
-
-        std::unique_ptr<ATSP_CUT_Callback> cb;
-        cb = std::unique_ptr<ATSP_CUT_Callback>(new ATSP_CUT_Callback(data.size, x));
-        modelRef.setCallback(cb.get());
-
         modelRef.set(GRB_DoubleParam_TimeLimit, 180.0);
         modelRef.set(GRB_IntParam_Threads, 1);
 
-        modelRef.write("model.lp");
-        modelRef.optimize();
-        setterStatus(modelRef.get(GRB_IntAttr_Status));
+        if (mode == SolveMode::IntegerMIP)
+        {
+            modelRef.set(GRB_IntParam_LazyConstraints, 1);
+            std::unique_ptr<ATSP_CUT_Callback> cb;
+            cb = std::unique_ptr<ATSP_CUT_Callback>(new ATSP_CUT_Callback(data.size, x, &lazyCuts, &userCuts));
+            modelRef.setCallback(cb.get());
+
+            modelRef.write("model.lp");
+            modelRef.optimize();
+            setterStatus(modelRef.get(GRB_IntAttr_Status));
+        }
+        else
+        {
+            auto start = std::chrono::steady_clock::now();
+            double timeLimit = 180.0;
+
+            while (true)
+            {
+                auto now = std::chrono::steady_clock::now();
+                double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(now - start).count();
+                double remaining = timeLimit - elapsed;
+                if (remaining <= 0.0)
+                    break;
+
+                modelRef.set(GRB_DoubleParam_TimeLimit, remaining);
+                modelRef.optimize();
+                setterStatus(modelRef.get(GRB_IntAttr_Status));
+
+                int status = getterStatus();
+                if (status != GRB_OPTIMAL && status != GRB_TIME_LIMIT)
+                    break;
+
+                if (modelRef.get(GRB_IntAttr_SolCount) == 0)
+                    break;
+
+                vector<vector<double>> sol(data.size, vector<double>(data.size, 0.0));
+                for (int i = 0; i < data.size; ++i)
+                    for (int j = 0; j < data.size; ++j)
+                        if (i != j)
+                            sol[i][j] = x[i][j].get(GRB_DoubleAttr_X);
+
+                vector<int> S;
+                if (!findFractionalCutS(sol, S))
+                    break;
+
+                vector<bool> inS(data.size, false);
+                for (int v : S)
+                    inS[v] = true;
+
+                GRBLinExpr cut = 0;
+                for (int i = 0; i < data.size; ++i)
+                    if (!inS[i])
+                        for (int j : S)
+                            cut += x[i][j];
+
+                modelRef.addConstr(cut >= 1);
+                userCuts++;
+
+                if (getterStatus() == GRB_TIME_LIMIT)
+                    break;
+            }
+        }
     }
     catch (GRBException e)
     {
