@@ -3,6 +3,9 @@
 #include <algorithm>
 #include "gurobi_c++.h"
 #include "ATSP_Data.hpp"
+#include "hi_pr.hpp"
+
+bool findSubtour_S(const std::vector<std::vector<double>> &sol, std::vector<int> &S);
 
 class ATSP_CUT : public GRBCallback
 {
@@ -12,8 +15,6 @@ private:
     std::unique_ptr<GRBModel> model;
     vector<vector<GRBVar>> x;
     int status;
-
-    void findSubtour_S(const int sol, std::vector<int> &S);
 
 public:
     void setterX(vector<vector<GRBVar>> &x) { this->x = x; }
@@ -45,46 +46,90 @@ protected:
             // Séparation uniquement sur solutions entières
             if (where == GRB_CB_MIPSOL)
             {
-
-                vector<int> succ(n, -1);
-
-                // Reconstruction du successeur de chaque sommet
+                vector<vector<double>> sol(n, vector<double>(n, 0.0));
                 for (int i = 0; i < n; ++i)
                     for (int j = 0; j < n; ++j)
-                        if (i != j && getSolution(x[i][j]) > 0.5)
-                            succ[i] = j;
+                        if (i != j)
+                            sol[i][j] = getSolution(x[i][j]);
 
-                vector<bool> visited(n, false);
-
-                // Recherche de sous-tours
-                for (int start = 0; start < n; ++start)
+                vector<int> S;
+                if (findSubtour_S(sol, S))
                 {
-                    if (visited[start])
-                        continue;
+                    vector<bool> inS(n, false);
+                    for (int v : S)
+                        inS[v] = true;
 
-                    vector<int> S;
-                    int cur = start;
+                    GRBLinExpr cut = 0;
+                    for (int i = 0; i < n; ++i)
+                        if (!inS[i])
+                            for (int j : S)
+                                cut += x[i][j];
 
-                    while (!visited[cur])
+                    addLazy(cut >= 1);
+                    return; // une coupe suffit
+                }
+            }
+
+            if (where == GRB_CB_MIPNODE)
+            {
+                if (getIntInfo(GRB_CB_MIPNODE_STATUS) != GRB_OPTIMAL)
+                    return;
+
+                vector<vector<double>> sol(n, vector<double>(n, 0.0));
+                for (int i = 0; i < n; ++i)
+                    for (int j = 0; j < n; ++j)
+                        if (i != j)
+                            sol[i][j] = getNodeRel(x[i][j]);
+
+                double **cap = new double *[n];
+                for (int i = 0; i < n; ++i)
+                {
+                    cap[i] = new double[n];
+                    for (int j = 0; j < n; ++j)
+                        cap[i][j] = (i == j) ? 0.0 : sol[i][j];
+                }
+
+                for (int sink = 1; sink < n; ++sink)
+                {
+                    long *dist = new long[n];
+                    double val = 0.0;
+                    directed_min_cut(cap, n, 0, sink, val, dist);
+
+                    if (val < 1.0 - 1e-6)
                     {
-                        visited[cur] = true;
-                        S.push_back(cur);
-                        cur = succ[cur];
-                    }
+                        vector<int> S;
+                        S.reserve(n);
+                        for (int v = 0; v < n; ++v)
+                            if (dist[v] <= n - 1)
+                                S.push_back(v);
 
-                    // Sous-tour strict -> contrainte violée
-                    if ((int)S.size() < n)
-                    {
+                        if (S.empty() || static_cast<int>(S.size()) == n)
+                        {
+                            delete[] dist;
+                            continue;
+                        }
+
+                        vector<bool> inS(n, false);
+                        for (int v : S)
+                            inS[v] = true;
+
                         GRBLinExpr cut = 0;
                         for (int i = 0; i < n; ++i)
-                            for (int j : S)
-                                if (find(S.begin(), S.end(), i) == S.end())
+                            if (!inS[i])
+                                for (int j : S)
                                     cut += x[i][j];
 
-                        addLazy(cut >= 1);
-                        return; // une coupe suffit
+                        addCut(cut >= 1);
+                        delete[] dist;
+                        break;
                     }
+
+                    delete[] dist;
                 }
+
+                for (int i = 0; i < n; ++i)
+                    delete[] cap[i];
+                delete[] cap;
             }
         }
         catch (GRBException e)

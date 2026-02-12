@@ -94,9 +94,9 @@ void ATSP_CUT::solve()
     }
 }
 
-void ATSP_CUT::findSubtour_S(const int sol, vector<int> &S)
+bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S)
 {
-    int n = data.size;
+    int n = static_cast<int>(sol.size());
     vector<bool> visited(n, false);
 
     for (int start = 0; start < n; ++start)
@@ -116,7 +116,7 @@ void ATSP_CUT::findSubtour_S(const int sol, vector<int> &S)
             bool foundNext = false;
             for (int j = 0; j < n; ++j)
             {
-                if (current != j && x[current][j].get(GRB_DoubleAttr_X) > 0.5)
+                if (current != j && sol[current][j] > 0.5)
                 {
                     current = j;
                     foundNext = true;
@@ -132,11 +132,12 @@ void ATSP_CUT::findSubtour_S(const int sol, vector<int> &S)
         if (current == start && cycle.size() < n)
         {
             S = cycle;
-            return;
+            return true;
         }
     }
 
     S.clear();
+    return false;
 }
 
 void ATSP_CUT::printSolution()
