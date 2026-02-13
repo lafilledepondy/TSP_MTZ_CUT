@@ -142,17 +142,17 @@ void ATSP_CUT::solve()
         else
         {
             auto start = std::chrono::steady_clock::now();
-            double timeLimit = 180.0;
+            // double timeLimit = 180.0;
 
             while (true)
             {
                 auto now = std::chrono::steady_clock::now();
                 double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(now - start).count();
-                double remaining = timeLimit - elapsed;
-                if (remaining <= 0.0)
-                    break;
+                // double remaining = timeLimit - elapsed;
+                // if (remaining <= 0.0)
+                //     break;
 
-                modelRef.set(GRB_DoubleParam_TimeLimit, remaining);
+                // modelRef.set(GRB_DoubleParam_TimeLimit, remaining);
                 modelRef.optimize();
                 setterStatus(modelRef.get(GRB_IntAttr_Status));
 
