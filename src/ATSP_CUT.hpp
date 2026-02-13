@@ -90,69 +90,74 @@ protected:
                 }
             }
 
-            if (where == GRB_CB_MIPNODE)
+            if (where == GRB_CB_MIPSOL)
             {
-                if (getIntInfo(GRB_CB_MIPNODE_STATUS) != GRB_OPTIMAL)
-                    return;
-
-                vector<vector<double>> sol(n, vector<double>(n, 0.0));
-                for (int i = 0; i < n; ++i)
-                    for (int j = 0; j < n; ++j)
-                        if (i != j)
-                            sol[i][j] = getNodeRel(x[i][j]);
-
-                double **cap = new double *[n];
-                for (int i = 0; i < n; ++i)
-                {
-                    cap[i] = new double[n];
-                    for (int j = 0; j < n; ++j)
-                        cap[i][j] = (i == j) ? 0.0 : sol[i][j];
-                }
-
-                for (int sink = 1; sink < n; ++sink)
-                {
-                    long *dist = new long[n];
-                    double val = 0.0;
-                    directed_min_cut(cap, n, 0, sink, val, dist);
-
-                    if (val < 1.0 - 1e-6)
-                    {
-                        vector<int> S;
-                        S.reserve(n);
-                        for (int v = 0; v < n; ++v)
-                            if (dist[v] <= n - 1)
-                                S.push_back(v);
-
-                        if (S.empty() || static_cast<int>(S.size()) == n)
-                        {
-                            delete[] dist;
-                            continue;
-                        }
-
-                        vector<bool> inS(n, false);
-                        for (int v : S)
-                            inS[v] = true;
-
-                        GRBLinExpr cut = 0;
-                        for (int i = 0; i < n; ++i)
-                            if (!inS[i])
-                                for (int j : S)
-                                    cut += x[i][j];
-
-                        addCut(cut >= 1);
-                        if (userCuts)
-                            (*userCuts)++;
-                        delete[] dist;
-                        break;
-                    }
-
-                    delete[] dist;
-                }
-
-                for (int i = 0; i < n; ++i)
-                    delete[] cap[i];
-                delete[] cap;
+                cout << "SKIPPED CALLBACK ON MIPSOL" << endl;
             }
+
+            // if (where == GRB_CB_MIPNODE)
+            // {
+            //     if (getIntInfo(GRB_CB_MIPNODE_STATUS) != GRB_OPTIMAL)
+            //         return;
+
+            //     vector<vector<double>> sol(n, vector<double>(n, 0.0));
+            //     for (int i = 0; i < n; ++i)
+            //         for (int j = 0; j < n; ++j)
+            //             if (i != j)
+            //                 sol[i][j] = getNodeRel(x[i][j]);
+
+            //     double **cap = new double *[n];
+            //     for (int i = 0; i < n; ++i)
+            //     {
+            //         cap[i] = new double[n];
+            //         for (int j = 0; j < n; ++j)
+            //             cap[i][j] = (i == j) ? 0.0 : sol[i][j];
+            //     }
+
+            //     for (int sink = 1; sink < n; ++sink)
+            //     {
+            //         long *dist = new long[n];
+            //         double val = 0.0;
+            //         directed_min_cut(cap, n, 0, sink, val, dist);
+
+            //         if (val < 1.0 - 1e-6)
+            //         {
+            //             vector<int> S;
+            //             S.reserve(n);
+            //             for (int v = 0; v < n; ++v)
+            //                 if (dist[v] <= n - 1)
+            //                     S.push_back(v);
+
+            //             if (S.empty() || static_cast<int>(S.size()) == n)
+            //             {
+            //                 delete[] dist;
+            //                 continue;
+            //             }
+
+            //             vector<bool> inS(n, false);
+            //             for (int v : S)
+            //                 inS[v] = true;
+
+            //             GRBLinExpr cut = 0;
+            //             for (int i = 0; i < n; ++i)
+            //                 if (!inS[i])
+            //                     for (int j : S)
+            //                         cut += x[i][j];
+
+            //             addCut(cut >= 1);
+            //             if (userCuts)
+            //                 (*userCuts)++;
+            //             delete[] dist;
+            //             break;
+            //         }
+
+            //         delete[] dist;
+            //     }
+
+            //     for (int i = 0; i < n; ++i)
+            //         delete[] cap[i];
+            //     delete[] cap;
+            // }
         }
         catch (GRBException e)
         {

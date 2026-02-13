@@ -125,7 +125,7 @@ void ATSP_CUT::solve()
             modelRef.addConstr(in == 1);
         }
 
-        modelRef.set(GRB_DoubleParam_TimeLimit, 180.0);
+        // modelRef.set(GRB_DoubleParam_TimeLimit, 180.0);
         modelRef.set(GRB_IntParam_Threads, 1);
 
         if (mode == SolveMode::IntegerMIP)
