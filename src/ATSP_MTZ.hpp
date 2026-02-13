@@ -9,8 +9,7 @@ using namespace std;
 
 #pragma once
 
-class ATSP_MTZ
-{
+class ATSP_MTZ {
 
 private:
     ATSPDataC data;

@@ -10,6 +10,8 @@ static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S
 {
     int n = static_cast<int>(sol.size());
 
+    // Construction du graphe capacite a partir de la solution fractionnaire x.
+    // La capacite de l'arc (i,j) vaut x_ij, et 0 sur les boucles.
     double **cap = new double *[n];
     for (int i = 0; i < n; ++i)
     {
@@ -18,6 +20,9 @@ static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S
             cap[i][j] = (i == j) ? 0.0 : sol[i][j];
     }
 
+    // Separation de coupes de type "cut" sur solutions fractionnaires :
+    // on cherche un min-cut dirige separant la source 0 d'un puits s.
+    // Si la valeur du min-cut est < 1, la contrainte sum_{i notin S, j in S} x_ij >= 1 est violee.
     for (int sink = 1; sink < n; ++sink)
     {
         long *dist = new long[n];
@@ -26,6 +31,7 @@ static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S
 
         if (val < 1.0 - 1e-6)
         {
+            // Reconstruction de l'ensemble S du cote source du min-cut.
             S.clear();
             S.reserve(n);
             for (int v = 0; v < n; ++v)
@@ -37,6 +43,7 @@ static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S
                 delete[] cap[i];
             delete[] cap;
 
+            // Si S est un sous-ensemble propre, on a trouve une coupe violee.
             if (!S.empty() && static_cast<int>(S.size()) < n)
                 return true;
 
@@ -58,6 +65,7 @@ void ATSP_CUT::solve()
 {
     try
     {
+        // Reinitialise les compteurs de coupes.
         lazyCuts = 0;
         userCuts = 0;
 
@@ -68,7 +76,7 @@ void ATSP_CUT::solve()
         model = std::make_unique<GRBModel>(*env);
         GRBModel &modelRef = *model;
 
-        // Variables
+        // Variables : x_ij (arcs) et u_i (ordre MTZ).
         x.assign(data.size, vector<GRBVar>(data.size));
         vector<vector<GRBVar>> &xRef = x;
         vector<GRBVar> u(data.size);
@@ -95,7 +103,7 @@ void ATSP_CUT::solve()
             }
         }
 
-        // Fonction objective
+        // Fonction objective : minimiser la somme des couts des arcs choisis.
         GRBLinExpr obj = 0;
         for (int i = 0; i < data.size; ++i)
         {
@@ -109,9 +117,9 @@ void ATSP_CUT::solve()
         }
         modelRef.setObjective(obj, GRB_MINIMIZE);
 
-        // Contraintes
-        // sum_j j!=i x[i][j] == 1 for all i in N
-        // sum_j j!=i x[j][i] == 1 for all i in N
+        // Contraintes de degre :
+        // - un arc sortant par sommet
+        // - un arc entrant par sommet
         for (int i = 0; i < data.size; ++i)
         {
             GRBLinExpr out = 0, in = 0;
@@ -130,6 +138,7 @@ void ATSP_CUT::solve()
 
         if (mode == SolveMode::IntegerMIP)
         {
+            // Separation de sous-tours en mode MIP entier via coupes "lazy".
             modelRef.set(GRB_IntParam_LazyConstraints, 1);
             std::unique_ptr<ATSP_CUT_Callback> cb;
             cb = std::unique_ptr<ATSP_CUT_Callback>(new ATSP_CUT_Callback(data.size, x, &lazyCuts, &userCuts));
@@ -141,6 +150,7 @@ void ATSP_CUT::solve()
         }
         else
         {
+            // Mode LP fractionnaire : boucle "solve -> separation -> ajout de coupe".
             auto start = std::chrono::steady_clock::now();
             double timeLimit = 180.0;
 
@@ -152,6 +162,7 @@ void ATSP_CUT::solve()
                 if (remaining <= 0.0)
                     break;
 
+                // Resolution du LP courant dans le temps restant.
                 modelRef.set(GRB_DoubleParam_TimeLimit, remaining);
                 modelRef.optimize();
                 setterStatus(modelRef.get(GRB_IntAttr_Status));
@@ -163,6 +174,7 @@ void ATSP_CUT::solve()
                 if (modelRef.get(GRB_IntAttr_SolCount) == 0)
                     break;
 
+                // Extraction de la solution fractionnaire x pour la separation.
                 vector<vector<double>> sol(data.size, vector<double>(data.size, 0.0));
                 for (int i = 0; i < data.size; ++i)
                     for (int j = 0; j < data.size; ++j)
@@ -170,6 +182,7 @@ void ATSP_CUT::solve()
                             sol[i][j] = x[i][j].get(GRB_DoubleAttr_X);
 
                 vector<int> S;
+                // Si aucune coupe violee n'est trouvee, on arrete la separation.
                 if (!findFractionalCutS(sol, S))
                     break;
 
@@ -177,6 +190,7 @@ void ATSP_CUT::solve()
                 for (int v : S)
                     inS[v] = true;
 
+                // Contrainte de coupe : au moins un arc entre V\S et S.
                 GRBLinExpr cut = 0;
                 for (int i = 0; i < data.size; ++i)
                     if (!inS[i])
@@ -207,6 +221,7 @@ bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S)
     int n = static_cast<int>(sol.size());
     vector<bool> visited(n, false);
 
+    // Separation sur solution entiere : on cherche un cycle strict (sous-tour).
     for (int start = 0; start < n; ++start)
     {
         if (visited[start])
@@ -220,7 +235,7 @@ bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S)
             visited[current] = true;
             cycle.push_back(current);
 
-            // find successor of current
+            // Trouver le successeur (arc sortant choisi depuis current).
             bool foundNext = false;
             for (int j = 0; j < n; ++j)
             {
@@ -236,7 +251,7 @@ bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S)
                 break;
         }
 
-        // If we closed a cycle and it’s not the full tour → subtour
+        // Si on ferme un cycle strict (taille < n), on a un sous-tour.
         if (current == start && cycle.size() < n)
         {
             S = cycle;

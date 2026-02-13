@@ -35,6 +35,43 @@ From the build directory:
 
 The `data/` symlink is created automatically, so instances can be referenced with a relative path.
 
+### Modes
+
+You can choose the solve mode as the second argument:
+
+```bash
+# MTZ (default)
+./TSP_Gurobi data/att48.tsp MTZ
+
+# CUT (integer MIP with lazy subtour cuts)
+./TSP_Gurobi data/att48.tsp CUT
+
+# CUT_LP (fractional LP with iterative cut generation)
+./TSP_Gurobi data/att48.tsp CUT_LP
+```
+
+### Summary Output (for scripts)
+
+Use `--summary` to print a single-line, machine-readable result:
+
+```bash
+./TSP_Gurobi data/att48.tsp MTZ --summary
+```
+
+This prints a line like:
+
+```
+RESULT instance=att48.tsp mode=MTZ obj=... bound=... nodes=... cuts=... status=... time=...
+```
+
+### Generate LaTeX Results Table
+
+The script [scripts/generate_results.py](scripts/generate_results.py) runs all instances in `data/` and writes a LaTeX table to `results.tex`:
+
+```bash
+python3 scripts/generate_results.py
+```
+
 ## Outputs
 
 During execution, the solver writes these files in the build directory:
@@ -45,5 +82,5 @@ During execution, the solver writes these files in the build directory:
 
 ## Notes
 
-- The time limit is set to 600 seconds in the solver.
+- The time limit is set to 180 seconds in the solver.
 - Single-threaded solve is enforced.

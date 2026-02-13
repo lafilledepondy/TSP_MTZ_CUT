@@ -5,30 +5,32 @@
 #include "ATSP_Data.hpp"
 #include "hi_pr.hpp"
 
+// Detecte un sous-tour et return son ensemble de sommets S
 bool findSubtour_S(const std::vector<std::vector<double>> &sol, std::vector<int> &S);
 
-class ATSP_CUT : public GRBCallback
-{
+class ATSP_CUT : public GRBCallback{
 private:
     ATSPDataC data;
     std::unique_ptr<GRBEnv> env;
     std::unique_ptr<GRBModel> model;
-    vector<vector<GRBVar>> x;
+    vector<vector<GRBVar>> x;// Variables de decision x[i][j]
+
+    // Statut & compteurs de coupes
     int status;
     int lazyCuts;
     int userCuts;
 
 public:
-    enum class SolveMode
-    {
+    enum class SolveMode{
         IntegerMIP,
         FractionalLP
     };
 
 private:
-    SolveMode mode;
+    SolveMode mode; // entier or frac
 
 public:
+    // Setters & Getters
     void setterX(vector<vector<GRBVar>> &x) { this->x = x; }
     void setterStatus(int status) { this->status = status; }
     GRBModel *getterModel() { return this->model.get(); }
@@ -39,16 +41,19 @@ public:
     int getTotalCuts() const { return lazyCuts + userCuts; }
     SolveMode getMode() const { return mode; }
 
+    // Constructeur
     ATSP_CUT(ATSPDataC data, SolveMode mode = SolveMode::IntegerMIP);
+
     void solve();
     void printSolution();
 };
 
-class ATSP_CUT_Callback : public GRBCallback
-{
+class ATSP_CUT_Callback : public GRBCallback{
 private:
-    int n;
+    int n;// Taille de l'instance 
     vector<vector<GRBVar>> &x;
+    
+    // Compteurs pour les coupes ajoutees
     int *lazyCuts;
     int *userCuts;
 
@@ -57,13 +62,11 @@ public:
         : n(n), x(x), lazyCuts(lazyCuts), userCuts(userCuts) {}
 
 protected:
-    void callback()
-    {
-        try
-        {
+    void callback(){
+        try{
             // Séparation uniquement sur solutions entières
-            if (where == GRB_CB_MIPSOL)
-            {
+            if (where == GRB_CB_MIPSOL){
+                // Reconstruction de la solution courante
                 vector<vector<double>> sol(n, vector<double>(n, 0.0));
                 for (int i = 0; i < n; ++i)
                     for (int j = 0; j < n; ++j)
@@ -73,6 +76,7 @@ protected:
                 vector<int> S;
                 if (findSubtour_S(sol, S))
                 {
+                    // Construit la coupe subtour et l'ajoute en lazy
                     vector<bool> inS(n, false);
                     for (int v : S)
                         inS[v] = true;
@@ -90,8 +94,7 @@ protected:
                 }
             }
 
-            if (where == GRB_CB_MIPSOL)
-            {
+            if (where == GRB_CB_MIPSOL){
                 cout << "SKIPPED CALLBACK ON MIPSOL" << endl;
             }
 
