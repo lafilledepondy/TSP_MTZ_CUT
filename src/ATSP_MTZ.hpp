@@ -15,19 +15,21 @@ private:
     ATSPDataC data;
     std::unique_ptr<GRBEnv> env;
     std::unique_ptr<GRBModel> model;
-    vector<vector<GRBVar>> x;
     int status;
 
+    vector<vector<GRBVar>> x; // x[i][j] == var decision arc i->j
+
 public:
+    // Constructeur
     ATSP_MTZ(ATSPDataC data);
 
+    // Setters & Getters
     void setterX(vector<vector<GRBVar>> &x) { this->x = x; }
     void setterStatus(int status) { this->status = status; }
     GRBModel *getterModel() { return this->model.get(); }
     vector<vector<GRBVar>> &getterX() { return this->x; }
     int getterStatus() { return this->status; }
 
-    void solve();
-
-    void printSolution();
+    void solve(); // build + solve model
+    void printSolution();  // affiche sol
 };

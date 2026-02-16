@@ -11,7 +11,8 @@ void ATSP_MTZ::solve() {
         model = std::make_unique<GRBModel>(*env);
         GRBModel &modelRef = *model;
 
-        // Variables
+        // Variables 
+        // x_ij && u_i
         x = vector<vector<GRBVar>>(data.size, vector<GRBVar>(data.size));
         vector<vector<GRBVar>> &xRef = x;
         vector<GRBVar> u(data.size);
