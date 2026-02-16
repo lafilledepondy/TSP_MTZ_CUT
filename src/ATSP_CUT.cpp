@@ -3,61 +3,6 @@
 
 using namespace std;
 
-bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S){
-    int n = static_cast<int>(sol.size());
-
-    // construit matrice capacites cap = sol
-    double **cap = new double *[n];
-
-    for (int i = 0; i < n; ++i){
-        cap[i] = new double[n];
-        for (int j = 0; j < n; ++j)
-            cap[i][j] = (i == j) ? 0.0 : sol[i][j];
-    }
-
-    // pour chaque sink != 0
-    for (int sink = 1; sink < n; ++sink){
-        long *dist = new long[n];
-        double val = 0.0;
-
-        // calcule min cut 0 -> sink
-        directed_min_cut(cap, n, 0, sink, val, dist);
-
-        // si val < 1 => violation
-        if (val < 1.0 - 1e-6){ // 1e-6 => petite tolérance ; avoid the false-positive cases
-            S.clear(); // sanitizing
-            S.reserve(n); // sanitizing
-
-            // construit S depuis dist
-            for (int v = 0; v < n; ++v)
-               { if (dist[v] <= n - 1)
-                    {S.push_back(v);}
-                }
-
-            delete[] dist; // sanitizing
-
-            for (int i = 0; i < n; ++i)
-                {delete[] cap[i];}
-
-            delete[] cap; // sanitizing
-
-            if (!S.empty() && static_cast<int>(S.size()) < n)
-                {return true;} // coupe trouve
-
-            continue;
-        }
-
-        delete[] dist; // sanitizing
-    }
-
-    for (int i = 0; i < n; ++i)
-       { delete[] cap[i];} // sanitizing 
-
-    delete[] cap; // sanitizing
-
-    S.clear(); // pas de coupe
-    return false;
-}
 
 bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S){
 // ================= QUESTION 2 =================
@@ -102,6 +47,62 @@ bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S){
     }
 
     S.clear(); // pas sous tour && sanitize
+    return false;
+}
+
+bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S){
+    int n = static_cast<int>(sol.size());
+
+    // construit matrice capacites cap = sol
+    double **cap = new double *[n];
+
+    for (int i = 0; i < n; ++i){
+        cap[i] = new double[n];
+        for (int j = 0; j < n; ++j)
+            {cap[i][j] = (i == j) ? 0.0 : sol[i][j];}
+    }
+
+    // pour chaque sink != 0
+    for (int sink = 1; sink < n; ++sink){
+        long *dist = new long[n];
+        double val = 0.0;
+
+        // calcule min cut 0 -> sink
+        directed_min_cut(cap, n, 0, sink, val, dist);
+
+        // si val < 1 => violation
+        if (val < 1.0 - 1e-6){ // 1e-6 => petite tolérance ; avoid the false-positive cases
+            S.clear(); // sanitizing
+            S.reserve(n); // sanitizing
+
+            // construit S depuis dist
+            for (int v = 0; v < n; ++v)
+               { if (dist[v] <= n - 1)
+                    {S.push_back(v);}
+                }
+
+            delete[] dist; // sanitizing
+
+            for (int i = 0; i < n; ++i)
+                {delete[] cap[i];}
+
+            delete[] cap; // sanitizing
+
+            if (!S.empty() && static_cast<int>(S.size()) < n)
+                {return true;} // coupe trouve
+
+            continue;
+        }
+
+        delete[] dist; // sanitizing
+    }
+
+    for (int i = 0; i < n; ++i)
+       { delete[] cap[i];} // sanitizing 
+
+    delete[] cap; // sanitizing
+
+    S.clear(); // pas de coupe
     return false;
 }
 
