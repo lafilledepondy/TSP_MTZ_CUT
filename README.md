@@ -41,13 +41,13 @@ You can choose the solve mode as the second argument:
 
 ```bash
 # MTZ (default)
-./TSP_Gurobi data/att48.tsp MTZ
+./TSP_Gurobi data/br17.atsp MTZ
 
 # CUT (integer MIP with lazy subtour cuts)
-./TSP_Gurobi data/att48.tsp CUT
+./TSP_Gurobi data/br17.atsp CUT
 
 # CUT_LP (fractional LP with iterative cut generation)
-./TSP_Gurobi data/att48.tsp CUT_LP
+./TSP_Gurobi data/br17.atsp CUT_LP
 ```
 
 ### Summary Output (for scripts)

@@ -6,9 +6,7 @@ using namespace std;
 ATSP_CUT::ATSP_CUT(ATSPDataC data, SolveMode mode)
     : data(data), status(0), lazyCuts(0), userCuts(0), mode(mode) {}
 
-static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S){
-    // * cherche coupe violee dans sol fractionnaire via min cut source 0 vers tous sinks
-
+static bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S){
     int n = static_cast<int>(sol.size());
 
     // construit matrice capacites cap = sol
@@ -29,7 +27,7 @@ static bool findFractionalCutS(const vector<vector<double>> &sol, vector<int> &S
         directed_min_cut(cap, n, 0, sink, val, dist);
 
         // si val < 1 => violation
-        if (val < 1.0 - 1e-6){
+        if (val < 1.0 - 1e-6){ // 1e-6 => petite tolérance ; avoid the false-positive cases
             S.clear(); // sanitizing
             S.reserve(n); // sanitizing
 
@@ -213,18 +211,19 @@ bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S){
     
     // pour chaque sommet non visite
     for (int start = 0; start < n; ++start){
-        if (visited[start])
+        if (visited[start]) // si le sommet est visité alrs skip le sommet
             {continue;}
 
         vector<int> cycle;
         int current = start;
 
-        // suit arcs x[i][j] > 0.5            
+        // suit arcs x[i][j] > 0.5 ; 0.5 car ~1 => choisi, tolerance numérique since it's double 1.9 is ~2 than 1  
         while (!visited[current]){
             visited[current] = true;
             cycle.push_back(current);
 
             bool foundNext = false;
+
             for (int j = 0; j < n; ++j){
                 if (current != j && sol[current][j] > 0.5){
                     current = j;
