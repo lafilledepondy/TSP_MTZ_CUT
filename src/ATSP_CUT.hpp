@@ -8,7 +8,7 @@
 // detecte 1 sous tour dans sol => remplit S si trouve
 bool findSubtour_S(const std::vector<std::vector<double>> &sol, std::vector<int> &S);
 
-bool findFractionalCutS
+static bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S);
 
 // ======================================================================
 // ============== CLASS ATSP_CUT :: GRBCALLBACK =========================

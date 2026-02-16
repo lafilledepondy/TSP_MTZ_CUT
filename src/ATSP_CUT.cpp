@@ -3,10 +3,7 @@
 
 using namespace std;
 
-ATSP_CUT::ATSP_CUT(ATSPDataC data, SolveMode mode)
-    : data(data), status(0), lazyCuts(0), userCuts(0), mode(mode) {}
-
-static bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S){
+bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &S){
     int n = static_cast<int>(sol.size());
 
     // construit matrice capacites cap = sol
@@ -61,6 +58,56 @@ static bool findFractionalCut_S(const vector<vector<double>> &sol, vector<int> &
     S.clear(); // pas de coupe
     return false;
 }
+
+bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S){
+// ================= QUESTION 2 =================
+// * detecte sous tour dans solution int
+// * retourne S si contrainte (11) violee
+
+    int n = static_cast<int>(sol.size());
+    vector<bool> visited(n, false);
+    
+    // pour chaque sommet non visite
+    for (int start = 0; start < n; ++start){
+        if (visited[start]) // si le sommet est visité alrs skip le sommet
+            {continue;}
+
+        vector<int> cycle;
+        int current = start;
+
+        // suit arcs x[i][j] > 0.5 ; 0.5 car ~1 => choisi, tolerance numérique since it's double 1.9 is ~2 than 1  
+        while (!visited[current]){
+            visited[current] = true;
+            cycle.push_back(current);
+
+            bool foundNext = false;
+
+            for (int j = 0; j < n; ++j){
+                if (current != j && sol[current][j] > 0.5){
+                    current = j;
+                    foundNext = true;
+                    break;
+                }
+            }
+
+            if (!foundNext)
+                {break;}
+        }
+
+        // si cycle ferme && taille < n        
+        if (current == start && cycle.size() < n){
+            S = cycle; // sous tour trouve !!
+            return true;
+        }
+    }
+
+    S.clear(); // pas sous tour && sanitize
+    return false;
+}
+
+
+ATSP_CUT::ATSP_CUT(ATSPDataC data, SolveMode mode)
+    : data(data), status(0), lazyCuts(0), userCuts(0), mode(mode) {}
 
 void ATSP_CUT::solve(){
     try{
@@ -170,7 +217,7 @@ void ATSP_CUT::solve(){
 
                 vector<int> S;
                 // cherche coupe violee
-                if (!findFractionalCutS(sol, S))
+                if (!findFractionalCut_S(sol, S))
                    { break;} // aucune violation
 
                 // construit inS
@@ -199,52 +246,6 @@ void ATSP_CUT::solve(){
     }
     catch (...)
     {  cout << "Exception during optimization" << endl;}
-}
-
-bool findSubtour_S(const vector<vector<double>> &sol, vector<int> &S){
-// ================= QUESTION 2 =================
-// * detecte sous tour dans solution int
-// * retourne S si contrainte (11) violee
-
-    int n = static_cast<int>(sol.size());
-    vector<bool> visited(n, false);
-    
-    // pour chaque sommet non visite
-    for (int start = 0; start < n; ++start){
-        if (visited[start]) // si le sommet est visité alrs skip le sommet
-            {continue;}
-
-        vector<int> cycle;
-        int current = start;
-
-        // suit arcs x[i][j] > 0.5 ; 0.5 car ~1 => choisi, tolerance numérique since it's double 1.9 is ~2 than 1  
-        while (!visited[current]){
-            visited[current] = true;
-            cycle.push_back(current);
-
-            bool foundNext = false;
-
-            for (int j = 0; j < n; ++j){
-                if (current != j && sol[current][j] > 0.5){
-                    current = j;
-                    foundNext = true;
-                    break;
-                }
-            }
-
-            if (!foundNext)
-                {break;}
-        }
-
-        // si cycle ferme && taille < n        
-        if (current == start && cycle.size() < n){
-            S = cycle; // sous tour trouve !!
-            return true;
-        }
-    }
-
-    S.clear(); // pas sous tour && sanitize
-    return false;
 }
 
 void ATSP_CUT::printSolution()
